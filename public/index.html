@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+    </head>
+    <body>
+        <h1>Overview</h1>
+        <p>This service will parse an audio clip and convert it into text. It will then attempt to extract the childs name, along with the reason and duration for absence</p>
+
+        <p>The following Postman collection can be used to interact with the service: <a href="./demo.postman_collection.json" download>Postman Collection</a></p>
+
+        <h1>Current limitations</h1>
+        <p>This is a basic PoC.</p>
+        <ul>
+            <li>A fairly basic transcription model is used as a decent GPU is required to run larger models in a timely fashion. A better model will have better accuracy</li>
+            <li>What is being pulled out of the text can be improved and extended.</li>
+            <li>Generally speaking, the code does enough to function but lacks error handling, ability to scale, validation etc etc</li>
+        </ul>
+    </body>
+</html>
