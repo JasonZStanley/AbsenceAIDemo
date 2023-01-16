@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <html>
     <head>
-
+        <% if (status != 'done') { %>
+            <script>
+            window.setTimeout(function() {
+                window.location.reload();
+            }, 5000)
+            </script>
+        <% } %>
     </head>
     <body>
         <h2>Audio Sample</h2>
@@ -38,12 +44,12 @@
         <h2>Transcription</h2>
         <p><strong>Using Whisper Base Model</strong></p>
         <quote><%=transcriptions.base.data%></quote>
-        <p><small>Time: <%=transcriptions.small.time%>. <em>One of the quickest models.</em></small></p>
+        <p><small>Time: <%=transcriptions.base.seconds%>. <em>One of the quickest models.</em></small></p>
 
 
         <p><strong>Using Whisper Small Model</strong></p>
         <quote><%=transcriptions.small.data%></quote>
-        <p><small>Time: <%=transcriptions.small.time%>. <em>Reasonable balance between speed and accuracy.</em></small></p>
+        <p><small>Time: <%=transcriptions.small.seconds%>. <em>Reasonable balance between speed and accuracy.</em></small></p>
 
         <p><small>Note, there are more accurate models which are trivial to implement but require a better specification machine to run.</small></p>
     

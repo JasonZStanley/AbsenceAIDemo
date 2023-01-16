@@ -128,6 +128,10 @@ app.get('/status/:id', async function(req, res) {
             return console.log(err.message);
         }
 
+        if ( ! rows.length) {
+            res.redirect('/')
+        }
+
         const row = rows[0]
         let parse = {};
         if (row.resolution !== null) {
@@ -159,7 +163,7 @@ app.get('/status/:id', async function(req, res) {
             transcriptions: {
                 small: {
                     data: row.transcription_small,
-                    seconds: row.transcription_base_small,
+                    seconds: row.transcription_small_time,
                     info: "The Whisper AI small model provides a good balance between speed an accuracy"
                 },
                 base: {

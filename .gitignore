@@ -2,3 +2,4 @@ whisper
 node_modules
 data.db
 public/storage/audio
+.DS_Store
