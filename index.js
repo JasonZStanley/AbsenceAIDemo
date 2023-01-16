@@ -15,6 +15,7 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 app.use(express.static('public'))
+app.set('view engine', 'ejs')
 
 function createDbConnection() {
     let init = false;
@@ -53,6 +54,10 @@ function createDbConnection() {
 }
 
 
+app.get('/', (req, res) => {
+    res.render('pages/index')
+})
+
 app.post('/store', upload.single('audio'), async function (req, res) {
     const db = createDbConnection();
     let id = 0;
@@ -64,7 +69,7 @@ app.post('/store', upload.single('audio'), async function (req, res) {
 
         id = this.lastID;
 
-        res.send({id: id})
+        res.redirect('/status/' + id)
 
         runWhisper(id, req.file.filename, 'base', async (data, time) => {
             const db = createDbConnection();
@@ -100,8 +105,6 @@ app.post('/store', upload.single('audio'), async function (req, res) {
                 db.run('UPDATE `clips` SET resolution=?, status=? WHERE id=?', [JSON.stringify(resolution), 'done', id], function (err) {
                     console.log("Stored ai log");
                 });
-        
-                console.log(tokens);
             });
         })
     });
@@ -125,28 +128,44 @@ app.get('/status/:id', async function(req, res) {
             return console.log(err.message);
         }
 
-        res.send({
-            status: rows[0].status,
-            audioFile: '/storage/audio/' + rows[0].audio,
-            ai_parse: {
-                childName: JSON.parse(rows[0].resolution).ai_response.split('\n')[1].replace('Child Name: ', ''),
-                reasonForAbsence: JSON.parse(rows[0].resolution).ai_response.split('\n')[2].replace('Reason: ', ''),
-                lengthOfAbsence: JSON.parse(rows[0].resolution).ai_response.split('\n')[3].replace('Length of Absence: ', ''),
+        const row = rows[0]
+        let parse = {};
+        if (row.resolution !== null) {
+            parse = {
+                childName: JSON.parse(row.resolution).ai_response.split('\n')[1].replace('Child Name: ', ''),
+                reasonForAbsence: JSON.parse(row.resolution).ai_response.split('\n')[2].replace('Reason: ', ''),
+                lengthOfAbsence: JSON.parse(row.resolution).ai_response.split('\n')[3].replace('Length of Absence: ', ''),
                 cost: {
-                    tokens: JSON.parse(rows[0].resolution).token_cost,
-                    actualCents: JSON.parse(rows[0].resolution).cost
+                    tokens: JSON.parse(row.resolution).token_cost,
+                    actualCents: JSON.parse(row.resolution).cost
                 }
-            },
+            };
+        } else {
+            parse = {
+                childName: null,
+                reasonForAbsence: null,
+                lengthOfAbsence: null,
+                cost: {
+                    tokens: 0,
+                    actualCents: 0
+                }
+            }
+        }
+
+        res.render('pages/status', {
+            status: row.status,
+            audioFile: '/storage/audio/' + row.audio,
+            ai_parse: parse,
             transcriptions: {
                 small: {
-                    data: rows[0].transcription_small,
-                    seconds: rows[0].transcription_base_small,
-                    info: "Thw Whisper AI small model provides a good balance between speed an accuracy"
+                    data: row.transcription_small,
+                    seconds: row.transcription_base_small,
+                    info: "The Whisper AI small model provides a good balance between speed an accuracy"
                 },
                 base: {
-                    data: rows[0].transcription_base,
-                    seconds: rows[0].transcription_base_time,
-                    info: "Thw Whisper AI base model is one the fastest models but can compromise on accuracy"
+                    data: row.transcription_base,
+                    seconds: row.transcription_base_time,
+                    info: "The Whisper AI base model is one the fastest models but can compromise on accuracy"
                 }
             }
         })
@@ -155,6 +174,8 @@ app.get('/status/:id', async function(req, res) {
 
 // OpenAI query
 function runWhisper(id, file, model, callback) {
+
+    console.log('cd whisper && whisper ../public/storage/audio/' + file + ' --model '+model+' --language English --fp16 False')
     var start = getSeconds();
     var child = exec('cd whisper && whisper ../public/storage/audio/' + file + ' --model '+model+' --language English --fp16 False')
 

@@ -7,7 +7,11 @@
         <h1>Overview</h1>
         <p>This service will parse an audio clip and convert it into text. It will then attempt to extract the childs name, along with the reason and duration for absence</p>
 
-        <p>The following Postman collection can be used to interact with the service: <a href="./demo.postman_collection.json" download>Postman Collection</a></p>
+        <h1>Upload an absence message for a child</h1>
+        <form method="post" action="/store" enctype="multipart/form-data">
+            <input type="file" name="audio" value="Select an audio file" />
+            <input type="submit" value="Upload" />
+        </form>
 
         <h1>Current limitations</h1>
         <p>This is a basic PoC.</p>

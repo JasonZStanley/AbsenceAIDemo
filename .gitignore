@@ -1,2 +1,4 @@
 whisper
 node_modules
+data.db
+public/storage/audio

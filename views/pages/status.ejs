@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+    </head>
+    <body>
+        <h2>Audio Sample</h2>
+        <audio controls>
+            <source src="<%= audioFile %>">
+        </audio>
+        
+        <h2>Status</h2>
+        <div id="status">
+            <% if (status == 'waiting_base_transcribe') { %>
+                <strong>Awaiting 'Base' Transcription</strong>
+            <% } else { %>
+                <small>Awaiting 'Base' Transcription</small>
+            <% } %>
+            > 
+            <% if (status == 'waiting_small_transcribe') { %>
+                <strong>Awaiting 'Small' Transcription</strong>
+            <% } else { %>
+                <small>Awaiting 'Small' Transcription</small>
+            <% } %>
+            >
+            <% if (status == 'waiting_ai_parse') { %>
+                <strong>Awaiting GPT Data Extraction</strong>
+            <% } else { %>
+                <small>Awaiting GPT Data Extraction</small>
+            <% } %>
+            >
+            <% if (status == 'done') { %>
+                <strong>Done</strong>
+            <% } else { %>
+                <small>Done</small>
+            <% } %>
+        </div>
+        <h2>Transcription</h2>
+        <p><strong>Using Whisper Base Model</strong></p>
+        <quote><%=transcriptions.base.data%></quote>
+        <p><small>Time: <%=transcriptions.small.time%>. <em>One of the quickest models.</em></small></p>
+
+
+        <p><strong>Using Whisper Small Model</strong></p>
+        <quote><%=transcriptions.small.data%></quote>
+        <p><small>Time: <%=transcriptions.small.time%>. <em>Reasonable balance between speed and accuracy.</em></small></p>
+
+        <p><small>Note, there are more accurate models which are trivial to implement but require a better specification machine to run.</small></p>
+    
+        
+        <h2>GPT results</h2>
+        <ul>
+            <li>Child Name: <%=ai_parse.childName%></li>
+            <li>Reason for Absence: <%=ai_parse.reasonForAbsence%></li>
+            <li>Length of Absence: <%=ai_parse.lengthOfAbsence%></li>
+        </ul>
+        <p>Token Cost: <%=ai_parse.cost.tokens%></p>
+        <p>Actual Cost: $<%=ai_parse.cost.actualCents%></p>
+    </body>
+</html>
