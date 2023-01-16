@@ -129,7 +129,7 @@ app.get('/status/:id', async function(req, res) {
         }
 
         if ( ! rows.length) {
-            res.redirect('/')
+            return res.redirect('/')
         }
 
         const row = rows[0]
