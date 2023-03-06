@@ -23,12 +23,6 @@
                 <small>Awaiting 'Base' Transcription</small>
             <% } %>
             > 
-            <% if (status == 'waiting_small_transcribe') { %>
-                <strong>Awaiting 'Small' Transcription</strong>
-            <% } else { %>
-                <small>Awaiting 'Small' Transcription</small>
-            <% } %>
-            >
             <% if (status == 'waiting_ai_parse') { %>
                 <strong>Awaiting GPT Data Extraction</strong>
             <% } else { %>
@@ -41,25 +35,28 @@
                 <small>Done</small>
             <% } %>
         </div>
-        <h2>Transcription</h2>
-        <p><strong>Using Whisper Base Model</strong></p>
+        <h2>Transcription - WhisperAI</h2>
         <quote><%=transcriptions.base.data%></quote>
-        <p><small>Time: <%=transcriptions.base.seconds%>. <em>One of the quickest models.</em></small></p>
+        <p><small>Time: <%=transcriptions.base.seconds%>.</small></p>
 
-
-        <p><strong>Using Whisper Small Model</strong></p>
-        <quote><%=transcriptions.small.data%></quote>
-        <p><small>Time: <%=transcriptions.small.seconds%>. <em>Reasonable balance between speed and accuracy.</em></small></p>
-
-        <p><small>Note, there are more accurate models which are trivial to implement but require a better specification machine to run.</small></p>
-    
-        
-        <h2>GPT results</h2>
+        <h2>Extract data using GPT-3</h2>
+        <p>GPT-3 is being used with the following prompt:</p>
         <ul>
+            <li>Absence: <%=ai_parse.absence%></li>
             <li>Child Name: <%=ai_parse.childName%></li>
             <li>Reason for Absence: <%=ai_parse.reasonForAbsence%></li>
             <li>Length of Absence: <%=ai_parse.lengthOfAbsence%></li>
         </ul>
+
+        <h3>GPT Prompt used to extract data:</h3>
+        <quote style="padding:10px; background:#eee; font-size:13px; display:block;">Given the following Prompt, please provide the following information:<br><br>
+                
+            ${TRANSCRIBED TEXT}<br><br>
+
+            Was a reson for absence given? (Absence Notification:)<br>
+            What is the name of the child provided (if given)? (Child Name:)<br>
+            What is the reason they won't be attending school (if given)? (Reason:)<br>
+            Length of absence (if given)? (AM, PM, All Day:)</quote>
         <p>Token Cost: <%=ai_parse.cost.tokens%></p>
         <p>Actual Cost: $<%=ai_parse.cost.actualCents%></p>
     </body>

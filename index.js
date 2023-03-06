@@ -4,12 +4,26 @@ const sqlite3 = require("sqlite3").verbose();
 const dbpath = "./data.db";
 const fs = require('fs');
 const multer  = require('multer')
-const upload = multer({ dest: 'public/storage/audio' })
 const { exec } = require("child_process");
 const { Configuration, OpenAIApi } = require("openai");
+const axios = require('axios');
+const path = require('path')
 
+var storage = multer.diskStorage({
+destination: function (req, file, cb) {
+    cb(null, 'public/storage/audio')
+},
+filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)) //Appending extension
+}
+})
+
+  const upload = multer({ storage: storage })
+
+// Insert API key here
+const apiKey = '';
 const configuration = new Configuration({
-    apiKey: '',
+    apiKey: apiKey,
 });
   
 const openai = new OpenAIApi(configuration);
@@ -77,34 +91,31 @@ app.post('/store', upload.single('audio'), async function (req, res) {
                 console.log("Stored base transcription");
             });
 
-            runWhisper(id, req.file.filename, 'small', async (data, time) => {
-                db.run('UPDATE `clips` SET transcription_small=?, transcription_small_time=?, status=? WHERE id=?', [data, time, 'waiting_ai_parse', id], function (err) {
-                    console.log("Stored small transcription");
-                });
+            const aiparse = await openai.createCompletion({
+                model: "text-davinci-003",
+                max_tokens: 300,
+                prompt: `Given the following Prompt, please provide the following information:
+                
+                ${data}
+    
+                Was a reson for absence given? (Absence Notification:)
+                What is the name of the child provided (if given)? (Child Name:)
+                What is the reason they won't be attending school (if given)? (Reason:)
+                Length of absence (if given)? (AM, PM, All Day:)
+                `,
+            });
 
-                const aiparse = await openai.createCompletion({
-                    model: "text-davinci-003",
-                    max_tokens: 300,
-                    prompt: `Hello, I'm phoning today to say that my son Zachary is feeling unwell and won't be attending school today.
-        
-                    What is the name of the child? (Child Name:)
-                    What is the reason they won't be attending school? (Reason:)
-                    Length of absence? (AM, PM, All Day:)
-                    `,
-                });
+            const txt = aiparse.data.choices[0].text;
+            const tokens = aiparse.data.usage.total_tokens;
 
-                const txt = aiparse.data.choices[0].text;
-                const tokens = aiparse.data.usage.total_tokens;
+            const resolution = {
+                ai_response: txt,
+                token_cost: tokens,
+                cost: (0.02/1000) * tokens
+            }
 
-                const resolution = {
-                    ai_response: txt,
-                    token_cost: tokens,
-                    cost: (0.02/1000) * tokens
-                }
-
-                db.run('UPDATE `clips` SET resolution=?, status=? WHERE id=?', [JSON.stringify(resolution), 'done', id], function (err) {
-                    console.log("Stored ai log");
-                });
+            db.run('UPDATE `clips` SET resolution=?, status=? WHERE id=?', [JSON.stringify(resolution), 'done', id], function (err) {
+                console.log("Stored ai log");
             });
         })
     });
@@ -135,10 +146,12 @@ app.get('/status/:id', async function(req, res) {
         const row = rows[0]
         let parse = {};
         if (row.resolution !== null) {
+            console.log(JSON.parse(row.resolution).ai_response);
             parse = {
-                childName: JSON.parse(row.resolution).ai_response.split('\n')[1].replace('Child Name: ', ''),
-                reasonForAbsence: JSON.parse(row.resolution).ai_response.split('\n')[2].replace('Reason: ', ''),
-                lengthOfAbsence: JSON.parse(row.resolution).ai_response.split('\n')[3].replace('Length of Absence: ', ''),
+                absence: JSON.parse(row.resolution).ai_response.split('\n')[1].replace('Absence Notification: ', ''),
+                childName: JSON.parse(row.resolution).ai_response.split('\n')[2].replace('Child Name: ', ''),
+                reasonForAbsence: JSON.parse(row.resolution).ai_response.split('\n')[3].replace('Reason: ', ''),
+                lengthOfAbsence: JSON.parse(row.resolution).ai_response.split('\n')[4].replace('Length of Absence: ', ''),
                 cost: {
                     tokens: JSON.parse(row.resolution).token_cost,
                     actualCents: JSON.parse(row.resolution).cost
@@ -179,25 +192,54 @@ app.get('/status/:id', async function(req, res) {
 // OpenAI query
 function runWhisper(id, file, model, callback) {
 
-    console.log('cd whisper && whisper ../public/storage/audio/' + file + ' --model '+model+' --language English --fp16 False')
+//     curl --request POST \
+//   --url https://api.openai.com/v1/audio/transcriptions \
+//   --header 'Authorization: Bearer TOKEN' \
+//   --header 'Content-Type: multipart/form-data' \
+//   --form file=@/path/to/file/openai.mp3 \
+//   --form model=whisper-1
+
+    console.log('../public/storage/audio/'+file);
+
     var start = getSeconds();
-    var child = exec('cd whisper && whisper ../public/storage/audio/' + file + ' --model '+model+' --language English --fp16 False')
 
-    child.stdout.on('data', function (data) {
-        console.log('stdout: ' + data);
+    const form = new axios.toFormData({
+        file: fs.createReadStream('./public/storage/audio/'+file),
+        model: 'whisper-1'
     });
 
-    child.on('close', function() {
-        fs.readFile('./whisper/'+file+'.txt', 'utf8', (err, data) => {
-            data = data.replace('\n', ' ');
-
-            callback(data, getSeconds() - start);
-
-            fs.unlinkSync('whisper/'+file+'.srt')
-            fs.unlinkSync('whisper/'+file+'.txt')
-            fs.unlinkSync('whisper/'+file+'.vtt')
-        });
+    // Create a curl request to openai audio transaction
+    axios.post('https://api.openai.com/v1/audio/transcriptions', form, {
+            headers: {
+                Authorization: 'Bearer ' + apiKey,
+                'Content-Type': 'multipart/form-data'
+            }
+    }).then(function (response) {
+        console.log(response.data);
+        callback(response.data.text, getSeconds() - start);
+    }).catch(function (error) {
+        console.log(error.message);
     });
+
+    // console.log('cd whisper && whisper ../public/storage/audio/' + file + ' --model '+model+' --language English --fp16 False')
+    // var start = getSeconds();
+    // var child = exec('cd whisper && whisper ../public/storage/audio/' + file + ' --model '+model+' --language English --fp16 False')
+
+    // child.stdout.on('data', function (data) {
+    //     console.log('stdout: ' + data);
+    // });
+
+    // child.on('close', function() {
+    //     fs.readFile('./whisper/'+file+'.txt', 'utf8', (err, data) => {
+    //         data = data.replace('\n', ' ');
+
+    //         callback(data, getSeconds() - start);
+
+    //         fs.unlinkSync('whisper/'+file+'.srt')
+    //         fs.unlinkSync('whisper/'+file+'.txt')
+    //         fs.unlinkSync('whisper/'+file+'.vtt')
+    //     });
+    // });
 }
 
 function getSeconds() {
