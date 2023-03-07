@@ -101,7 +101,7 @@ app.post('/store', upload.single('audio'), async function (req, res) {
                 Was a reson for absence given? (Absence Notification:)
                 What is the name of the child provided (if given)? (Child Name:)
                 What is the reason they won't be attending school (if given)? (Reason:)
-                Length of absence (if given)? (AM, PM, All Day:)
+                Length of time the child will not be in school (if given)? (Morning, Afternoon, All Day:)
                 `,
             });
 
@@ -151,7 +151,7 @@ app.get('/status/:id', async function(req, res) {
                 absence: JSON.parse(row.resolution).ai_response.split('\n')[1].replace('Absence Notification: ', ''),
                 childName: JSON.parse(row.resolution).ai_response.split('\n')[2].replace('Child Name: ', ''),
                 reasonForAbsence: JSON.parse(row.resolution).ai_response.split('\n')[3].replace('Reason: ', ''),
-                lengthOfAbsence: JSON.parse(row.resolution).ai_response.split('\n')[4].replace('Length of Absence: ', ''),
+                lengthOfAbsence: JSON.parse(row.resolution).ai_response.split('\n')[4].replace('Morning, Afternoon, All Day: ', ''),
                 cost: {
                     tokens: JSON.parse(row.resolution).token_cost,
                     actualCents: JSON.parse(row.resolution).cost
